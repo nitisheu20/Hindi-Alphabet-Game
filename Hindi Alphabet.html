@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<title>वर्णमाला व्हाइटबोर्ड खेल</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1fb;--card:#fff;--ink:#1c1f3a;--mute:#5b6082;--line:#c3c9e6;--accent:#3b4cca;--ts:32px;--cols:9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14162b;--card:#1f2242;--ink:#f1f2ff;--mute:#a4a9d3;--line:#4a4f86;--accent:#8e9bff}}
+:root[data-theme="dark"]{--bg:#14162b;--card:#1f2242;--ink:#f1f2ff;--mute:#a4a9d3;--line:#4a4f86;--accent:#8e9bff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--ink);font-family:"Baloo 2","Noto Sans Devanagari","Mangal",system-ui,sans-serif;display:flex;justify-content:center;user-select:none;-webkit-user-select:none}
+main{width:100%;max-width:1100px;height:100%;padding:8px}
+h1{font-size:2rem;margin:.2em 0;font-weight:800;line-height:1.2}
+p{color:var(--mute);margin:.3em 0 1em}
+.screen{display:none;height:100%}
+.screen.on{display:block}
+#game.on{display:flex;flex-direction:column;gap:8px}
+.btn{font:inherit;font-weight:700;font-size:.85rem;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:6px 9px;border-radius:12px;cursor:pointer}
+.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root:not([data-theme="light"]) .btn.primary{color:#14162b}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none}
+.timer{font-size:1.6rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.stat{font-size:.78rem;color:var(--mute);font-weight:600;margin-top:2px}
+.acts{display:flex;gap:6px}
+.panels{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
+/* whiteboard */
+.frame{position:relative;flex:1;min-height:0;background:#fff;border:6px solid #c9cfdd;border-radius:12px;box-shadow:inset 0 0 0 2px #e4e8f2,0 3px 8px rgba(0,0,0,.2)}
+.board{position:absolute;inset:0;touch-action:none;background:repeating-linear-gradient(0deg,transparent 0 23px,rgba(80,100,200,.06) 23px 24px)}
+.mark{position:absolute;right:8px;bottom:4px;font-size:.7rem;color:#9aa;pointer-events:none}
+.hint{display:none;position:absolute;inset:0;z-index:60;background:rgba(255,255,255,.97);padding:8px;flex-wrap:wrap;align-content:center;justify-content:center;gap:2px 4px;border-radius:6px}
+.hint.on{display:flex}
+.hint span{font-weight:800;font-size:1.25rem;min-width:1.5em;text-align:center}
+/* tiles */
+.tile{container-type:inline-size;display:grid;place-items:center;border-radius:14%;color:#fff;font-weight:800;cursor:grab;touch-action:none;box-shadow:0 2px 0 rgba(0,0,0,.28)}
+.tile span{font-size:58cqw;line-height:1;pointer-events:none}
+.tile.long span{font-size:40cqw}
+.tile.on{position:absolute;width:var(--ts);height:var(--ts)}
+.tile.in{position:relative;width:100%;height:100%}
+.tile.sel{outline:3px solid #111;outline-offset:1px;z-index:5}
+.tile.drag{cursor:grabbing;z-index:200;box-shadow:0 8px 14px rgba(0,0,0,.35);outline:none}
+.tile.right::after{content:"";position:absolute;right:7%;top:7%;width:15%;height:15%;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.3)}
+/* slots */
+.slots{flex:none;width:100%;display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:3px;padding:5px;background:var(--card);border:2px solid var(--line);border-radius:12px}
+.slot{position:relative;aspect-ratio:1;border:1.5px dashed var(--line);border-radius:8px;display:grid;min-width:0}
+.slot b{position:absolute;left:2px;top:0;font-size:.5rem;line-height:1.2;color:var(--mute);font-weight:600;pointer-events:none}
+.slot .tile{grid-area:1/1;border-radius:6px}
+.slot svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.slot text{fill:none;stroke-width:3;stroke-dasharray:.1 5;stroke-linecap:round;font-family:"Baloo 2","Noto Sans Devanagari","Mangal",sans-serif;font-weight:800}
+.slots.noguide svg{display:none}
+.btn.off{opacity:.55}
+@media (min-aspect-ratio:6/5){
+  .panels{flex-direction:row}
+  .slots{width:min(44vw,calc(100dvh - 86px));align-self:flex-start}
+}
+.card{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:20px;text-align:center;max-width:520px;margin:6vh auto 0}
+.big{font-size:3.6rem;font-weight:800;line-height:1.1;margin:.2em 0;font-variant-numeric:tabular-nums}
+.confetti{display:flex;justify-content:center;gap:4px;flex-wrap:wrap}
+.confetti span{font-size:1.8rem;font-weight:800;animation:pop .5s both}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+@keyframes pop{from{transform:scale(0) rotate(-30deg)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<main>
+<section id="game" class="screen on">
+  <div class="top">
+    <div><div class="timer" id="time">00:00.0</div><div class="stat" id="stat"></div></div>
+    <div class="acts">
+      <button class="btn" id="guide">बिंदु ✓</button>
+      <button class="btn" id="peek">क्रम देखें</button>
+      <button class="btn" id="restart">↻ फिर से</button>
+    </div>
+  </div>
+  <div class="panels">
+    <div class="frame"><div class="board" id="board"></div><span class="mark">व्हाइटबोर्ड</span><div class="hint" id="hint"></div></div>
+    <div class="slots" id="slots"></div>
+  </div>
+</section>
+
+<section id="done" class="screen">
+  <div class="card">
+    <div class="confetti" id="conf"></div>
+    <h1>शाबाश!</h1>
+    <p>आपने सभी 49 अक्षर सही क्रम में लगा दिए।</p>
+    <div class="big" id="final">00:00.0</div>
+    <p id="finalStat"></p>
+    <div class="row">
+      <button class="btn primary" id="again">फिर से खेलें</button>
+      <button class="btn" id="quit">बाहर निकलें</button>
+    </div>
+  </div>
+</section>
+
+<section id="bye" class="screen">
+  <div class="card">
+    <h1>फिर मिलेंगे!</h1>
+    <p>खेलने के लिए धन्यवाद।</p>
+    <div class="row"><button class="btn primary" id="back">फिर से शुरू करें</button></div>
+  </div>
+</section>
+</main>
+
+<script>
+const L=["अ","आ","इ","ई","उ","ऊ","ऋ","ए","ऐ","ओ","औ","अं","अः","क","ख","ग","घ","ङ","च","छ","ज","झ","ञ","ट","ठ","ड","ढ","ण","त","थ","द","ध","न","प","फ","ब","भ","म","य","र","ल","व","श","ष","स","ह","क्ष","त्र","ज्ञ"];
+const N=L.length;
+const $=id=>document.getElementById(id);
+const board=$("board"),slotsEl=$("slots"),root=document.documentElement;
+const color=i=>`hsl(${Math.round((i*137.508)%360)} 68% 40%)`;
+const fmt=ms=>{const t=Math.floor(ms/100);return String(Math.floor(t/600)).padStart(2,"0")+":"+String(Math.floor(t/10)%60).padStart(2,"0")+"."+t%10};
+const show=id=>document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clamp=v=>Math.min(Math.max(v,0),1);
+let tiles=[],slotEls=[],sel=-1,moves=0,running=false,t0=0,timer=null;
+
+for(let i=0;i<N;i++){const s=document.createElement("div");s.className="slot";s.dataset.i=i;s.innerHTML=`<b>${i+1}</b><svg viewBox="0 0 100 100" aria-hidden="true"><text x="50" y="56" text-anchor="middle" dominant-baseline="middle" font-size="${L[i].length>1?44:66}" stroke="${color(i).replace("40%","58%")}">${L[i]}</text></svg>`;slotsEl.appendChild(s);slotEls.push(s)}
+$("hint").innerHTML=L.map((l,i)=>`<span style="color:${color(i)}">${l}</span>`).join("");
+L.forEach((l,i)=>{
+  const el=document.createElement("div");
+  el.className="tile"+(l.length>1?" long":"");
+  el.style.background=color(i);el.innerHTML=`<span>${l}</span>`;
+  el.setAttribute("role","button");el.setAttribute("aria-label",l);
+  tiles.push({el,fx:0,fy:0,rot:0,slot:-1});attach(el,i);
+});
+
+function layout(){
+  root.style.setProperty("--cols",matchMedia("(min-aspect-ratio: 6/5)").matches?7:9);
+  const w=slotEls[0].getBoundingClientRect().width;
+  if(w>0)root.style.setProperty("--ts",Math.floor(w-3)+"px");
+}
+function scatter(){
+  const bw=board.clientWidth||300,bh=board.clientHeight||300;
+  const cols=Math.max(1,Math.round(Math.sqrt(N*1.2*bw/bh))),rows=Math.ceil(N/cols);
+  const cells=[];for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)cells.push([c,r]);
+  cells.sort(()=>Math.random()-.5);
+  tiles.forEach((t,i)=>{const [c,r]=cells[i];t.fx=clamp((c+rnd(0,1))/cols);t.fy=clamp((r+rnd(0,1))/rows);t.rot=rnd(-12,12);t.slot=-1});
+}
+function render(){
+  tiles.forEach((t,i)=>{
+    const e=t.el;
+    e.classList.remove("drag");["position","width","height","zIndex","left","top","transform"].forEach(k=>e.style[k]="");
+    e.classList.toggle("sel",sel===i);e.classList.toggle("right",t.slot===i);
+    if(t.slot>=0){slotEls[t.slot].appendChild(e);e.classList.add("in");e.classList.remove("on")}
+    else{board.appendChild(e);e.classList.add("on");e.classList.remove("in");
+      e.style.left=`calc((100% - var(--ts)) * ${t.fx})`;e.style.top=`calc((100% - var(--ts)) * ${t.fy})`;
+      e.style.transform=`rotate(${t.rot}deg)`}
+  });
+  const placed=tiles.filter(t=>t.slot>=0).length,ok=tiles.filter((t,i)=>t.slot===i).length;
+  $("stat").textContent=`रखे ${placed}/${N} · सही ${ok} · चाल ${moves}`;
+}
+function begin(){if(running)return;running=true;t0=performance.now();timer=setInterval(()=>$("time").textContent=fmt(performance.now()-t0),100)}
+function newGame(){
+  clearInterval(timer);running=false;sel=-1;moves=0;$("time").textContent="00:00.0";
+  $("hint").classList.remove("on");$("peek").textContent="क्रम देखें";
+  show("game");layout();scatter();render();
+}
+function checkDone(){
+  if(!tiles.every((t,i)=>t.slot===i))return;
+  clearInterval(timer);running=false;
+  $("final").textContent=fmt(performance.now()-t0);
+  $("finalStat").textContent=`${moves} चालों में पूरा हुआ`;
+  $("conf").innerHTML=L.slice(0,9).map((l,i)=>`<span style="color:${color(i)};animation-delay:${i*.06}s">${l}</span>`).join("");
+  show("done");
+}
+function place(i,s){
+  begin();const t=tiles[i],occ=tiles.findIndex(x=>x.slot===s&&x!==t),from=t.slot;
+  if(occ>=0){const o=tiles[occ];
+    if(from>=0)o.slot=from;
+    else{o.slot=-1;o.fx=t.fx;o.fy=t.fy;o.rot=rnd(-12,12)}}
+  t.slot=s;moves++;sel=-1;render();checkDone();
+}
+function toBoard(i,fx,fy){begin();const t=tiles[i];t.slot=-1;t.fx=clamp(fx);t.fy=clamp(fy);moves++;sel=-1;render()}
+function attach(el,i){
+  let sx,sy,ox,oy,moved=false,r;
+  el.addEventListener("pointerdown",e=>{
+    el.setPointerCapture(e.pointerId);sx=e.clientX;sy=e.clientY;moved=false;
+    r=el.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;
+  });
+  el.addEventListener("pointermove",e=>{
+    if(!el.hasPointerCapture(e.pointerId))return;
+    if(!moved){if(Math.hypot(e.clientX-sx,e.clientY-sy)<5)return;
+      moved=true;Object.assign(el.style,{position:"fixed",width:r.width+"px",height:r.height+"px",zIndex:200});
+      el.classList.add("drag")}
+    el.style.left=e.clientX-ox+"px";el.style.top=e.clientY-oy+"px";
+  });
+  el.addEventListener("pointerup",e=>{
+    if(!moved){
+      if(sel>=0&&sel!==i&&tiles[i].slot>=0)place(sel,tiles[i].slot);
+      else{sel=sel===i?-1:i;render()}
+      return}
+    el.style.pointerEvents="none";
+    const under=document.elementFromPoint(e.clientX,e.clientY);
+    el.style.pointerEvents="";
+    const slot=under&&under.closest(".slot");
+    if(slot)place(i,+slot.dataset.i);
+    else if(under&&under.closest(".frame")){
+      const b=board.getBoundingClientRect();
+      toBoard(i,(e.clientX-ox-b.left)/(b.width-r.width),(e.clientY-oy-b.top)/(b.height-r.height))}
+    else render();
+  });
+  el.addEventListener("pointercancel",render);
+}
+slotsEl.addEventListener("click",e=>{
+  const s=e.target.closest(".slot");if(!s||e.target.closest(".tile")||sel<0)return;
+  place(sel,+s.dataset.i)});
+board.addEventListener("click",e=>{
+  if(e.target!==board||sel<0||tiles[sel].slot<0)return;
+  const b=board.getBoundingClientRect(),ts=slotEls[0].clientWidth;
+  toBoard(sel,(e.clientX-b.left-ts/2)/(b.width-ts),(e.clientY-b.top-ts/2)/(b.height-ts))});
+const toggleHint=()=>{const h=$("hint");h.classList.toggle("on");$("peek").textContent=h.classList.contains("on")?"क्रम छिपाएँ":"क्रम देखें"};
+$("guide").onclick=()=>{const off=slotsEl.classList.toggle("noguide");$("guide").textContent=off?"बिंदु ✗":"बिंदु ✓";$("guide").classList.toggle("off",off)};
+$("peek").onclick=toggleHint;$("hint").onclick=toggleHint;
+$("restart").onclick=newGame;$("again").onclick=newGame;
+$("quit").onclick=()=>show("bye");$("back").onclick=newGame;
+addEventListener("resize",()=>{layout();render()});
+document.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
+newGame();
+</script>
+</body>
+</html>
